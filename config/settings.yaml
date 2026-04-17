@@ -1,0 +1,50 @@
+# File-to-Markdown 설정 파일
+# 모든 임곗값, 경로, 모드 매핑은 여기서 관리합니다.
+
+# 경로 설정 (프로젝트 루트 기준 상대 경로)
+paths:
+  input: "input"
+  raw_md: "output/raw_md"
+  clean_md: "output/clean_md"
+  json_logs: "output/json_logs"
+  failed: "output/failed"
+
+# 모드 설정
+modes:
+  default: "standard"
+  chain:
+    - "standard"
+    - "ocr"
+    - "high_accuracy"
+  max_retries: 3
+  # 특정 확장자의 기본 모드를 재정의 (선택적)
+  extension_overrides:
+    ".tif": "ocr"
+    ".tiff": "ocr"
+
+# OCR 설정 (Phase 2 - 환경변수 F2MD_LLM_API_KEY 필요)
+ocr:
+  llm_model: "gpt-4o"
+  # api_key는 환경변수 F2MD_LLM_API_KEY에서 로드
+
+# High-accuracy 설정 (Phase 2 - 환경변수 F2MD_DOCINTEL_ENDPOINT 필요)
+high_accuracy:
+  provider: "azure_doc_intelligence"
+  # endpoint는 환경변수 F2MD_DOCINTEL_ENDPOINT에서 로드
+
+# 검증 임곗값
+validation:
+  min_char_count: 50
+  max_repetition_count: 5
+  repetition_min_length: 10
+  min_extraction_ratio: 0.01  # 원본 바이트 대비 1%
+
+# 정규화 설정
+normalization:
+  bullet_char: "-"
+  max_consecutive_newlines: 2
+
+# 배치 처리 설정
+batch:
+  max_workers: 4
+  continue_on_error: true

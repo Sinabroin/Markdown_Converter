@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File-to-Markdown 사용 가이드</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3349;
+      --accent: #6c8ef5;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue-muted: #3b4fd8;
+      --text: #e2e8f0;
+      --text-muted: #8892b0;
+      --text-dim: #4a5568;
+      --code-bg: #0d1117;
+      --radius: 10px;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Pretendard", "Noto Sans KR", -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.75;
+      font-size: 15px;
+    }
+
+    /* ── 레이아웃 ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 28px 0;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .sidebar-logo .logo-icon {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    .sidebar-logo h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .sidebar-logo p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .nav-group { margin-bottom: 8px; }
+    .nav-group-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      padding: 4px 20px;
+      margin-bottom: 2px;
+    }
+    .nav-link {
+      display: block;
+      padding: 7px 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: var(--accent);
+      background: rgba(108,142,245,0.08);
+      border-left-color: var(--accent);
+    }
+
+    /* ── 메인 콘텐츠 ── */
+    .main {
+      flex: 1;
+      max-width: 860px;
+      padding: 48px 56px;
+    }
+
+    /* ── 섹션 ── */
+    .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+
+    /* ── 히어로 ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #1e2035 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 40px 36px;
+      margin-bottom: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(108,142,245,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(108,142,245,0.12);
+      border: 1px solid rgba(108,142,245,0.3);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+    .hero h2 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .hero h2 span { color: var(--accent); }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 560px;
+      margin-bottom: 24px;
+    }
+    .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* ── 제목 ── */
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+    .section-title .icon {
+      font-size: 18px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 24px 0 10px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; }
+
+    /* ── 코드 블록 ── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 14px 0 20px;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-lang {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .copy-btn {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+    pre {
+      padding: 16px 18px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+    }
+    .inline-code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* 구문 강조 */
+    .kw { color: #ff79c6; }
+    .cm { color: #6272a4; font-style: italic; }
+    .st { color: #f1fa8c; }
+    .fn { color: #50fa7b; }
+    .nm { color: #bd93f9; }
+    .op { color: #ff79c6; }
+    .hl { color: var(--accent); }
+
+    /* ── 카드 그리드 ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card-icon { font-size: 22px; margin-bottom: 10px; }
+    .card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* ── 테이블 ── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    td:first-child { font-family: var(--font-mono); color: var(--accent2); font-size: 12px; }
+
+    /* ── 파이프라인 다이어그램 ── */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 20px 0;
+      row-gap: 10px;
+    }
+    .pipe-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 12px;
+      text-align: center;
+      min-width: 100px;
+    }
+    .pipe-step .pipe-icon { font-size: 18px; margin-bottom: 4px; }
+    .pipe-step .pipe-label { font-weight: 700; color: var(--text); font-size: 12px; }
+    .pipe-step .pipe-sub { color: var(--text-muted); font-size: 10px; margin-top: 2px; }
+    .pipe-arrow {
+      color: var(--text-dim);
+      font-size: 18px;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+    .pipe-step.accent { border-color: var(--accent); background: rgba(108,142,245,0.07); }
+    .pipe-step.green { border-color: var(--green); background: rgba(52,211,153,0.07); }
+    .pipe-step.yellow { border-color: var(--yellow); background: rgba(251,191,36,0.07); }
+
+    /* ── 경고/노트 박스 ── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 16px 0;
+      border-left: 3px solid;
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .callout.info { background: rgba(108,142,245,0.08); border-color: var(--accent); }
+    .callout.warn { background: rgba(251,191,36,0.08); border-color: var(--yellow); }
+    .callout.tip  { background: rgba(52,211,153,0.08); border-color: var(--green); }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout-body { color: var(--text-muted); line-height: 1.6; }
+    .callout-body strong { color: var(--text); }
+
+    /* ── 배지 ── */
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+    .badge.green { background: rgba(52,211,153,0.15); color: var(--green); }
+    .badge.yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .badge.red { background: rgba(248,113,113,0.15); color: var(--red); }
+    .badge.blue { background: rgba(108,142,245,0.15); color: var(--accent); }
+
+    /* ── 출력 구조 트리 ── */
+    .file-tree {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 2;
+      margin: 14px 0;
+    }
+    .tree-folder { color: #8be9fd; }
+    .tree-file { color: var(--text-muted); }
+    .tree-comment { color: var(--text-dim); font-style: italic; }
+    .tree-arrow { color: #6272a4; }
+
+    /* ── 단계 리스트 ── */
+    .steps { list-style: none; margin: 16px 0; }
+    .steps li {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: var(--accent);
+      color: #fff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .step-content p { font-size: 13px; margin: 0; }
+
+    /* ── 스크롤바 ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 860px) {
+      .sidebar { display: none; }
+      .main { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- 사이드바 -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📄</div>
+      <h1>File-to-Markdown</h1>
+      <p>사용자 가이드 v0.1.0</p>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title">시작하기</div>
+      <a class="nav-link active" href="#overview">개요</a>
+      <a class="nav-link" href="#install">설치</a>
+      <a class="nav-link" href="#quickstart">빠른 시작</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title">사용법</div>
+      <a class="nav-link" href="#convert-one">단일 파일 변환</a>
+      <a class="nav-link" href="#convert-batch">배치 변환</a>
+      <a class="nav-link" href="#normalize">정규화</a>
+      <a class="nav-link" href="#validate">검증</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title">심화</div>
+      <a class="nav-link" href="#pipeline">파이프라인 구조</a>
+      <a class="nav-link" href="#formats">지원 포맷</a>
+      <a class="nav-link" href="#config">설정 파일</a>
+      <a class="nav-link" href="#output">출력 구조</a>
+      <a class="nav-link" href="#faq">FAQ</a>
+    </div>
+  </nav>
+
+  <!-- 메인 -->
+  <main class="main">
+
+    <!-- 히어로 -->
+    <div class="hero">
+      <div class="hero-badge">📄 문서 → Markdown 변환 파이프라인</div>
+      <h2>File-to-<span>Markdown</span></h2>
+      <p>
+        다양한 문서를 LLM·RAG 전처리에 바로 쓸 수 있는 <strong>정규화된 Markdown</strong>으로 변환합니다.
+        자동 라우팅, 품질 검증, 에스컬레이션, JSON 로깅이 모두 포함된 프로덕션 파이프라인입니다.
+      </p>
+      <div class="hero-chips">
+        <span class="chip">Python 3.13</span>
+        <span class="chip">Windows 10/11</span>
+        <span class="chip">MarkItDown 0.1.5</span>
+        <span class="chip">PowerShell / CMD</span>
+        <span class="chip">12개 포맷 지원</span>
+      </div>
+    </div>
+
+    <!-- 개요 -->
+    <section class="section" id="overview">
+      <h2 class="section-title"><span class="icon">🔍</span> 개요</h2>
+      <p>
+        <strong>File-to-Markdown</strong>은 Microsoft의 <strong>MarkItDown</strong>을 변환 엔진으로 사용하고,
+        그 위에 라우팅·정규화·검증·로깅 파이프라인을 감싼 Windows CLI 도구입니다.
+        PDF, DOCX, PPTX, XLSX, HTML 등 다양한 파일을 입력하면 정제된 Markdown 파일과 변환 로그를 자동으로 생성합니다.
+      </p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🗺️</div>
+          <h4>자동 라우팅</h4>
+          <p>확장자·MIME 기반으로 최적 변환 모드를 자동 선택합니다.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🪜</div>
+          <h4>3단계 에스컬레이션</h4>
+          <p>Standard → OCR → High-accuracy 순으로 자동 품질 보장합니다.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">✨</div>
+          <h4>Markdown 정규화</h4>
+          <p>공백·불릿·헤딩·반복 토큰을 자동으로 정리합니다.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔎</div>
+          <h4>품질 검증</h4>
+          <p>최소 길이·추출 비율·반복 이상 등 5개 항목을 자동 검사합니다.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📋</div>
+          <h4>JSON 로깅</h4>
+          <p>변환 건마다 모드·시간·검증 결과를 JSON으로 기록합니다.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h4>배치 처리</h4>
+          <p>폴더 단위 병렬 변환과 진행률·실패 리포트를 지원합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 설치 -->
+    <section class="section" id="install">
+      <h2 class="section-title"><span class="icon">📦</span> 설치</h2>
+
+      <p>Python 3.13 이상이 필요합니다. 가상환경 사용을 <strong>강력히 권장</strong>합니다.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>프로젝트 폴더로 이동</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">powershell</span>
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+              </div>
+              <pre><code>cd D:\Projects\File-to-markdown</code></pre>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>가상환경 생성 및 활성화</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">powershell</span>
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+              </div>
+              <pre><code>python -m venv .venv
+.venv\Scripts\activate</code></pre>
+            </div>
+            <p>활성화되면 프롬프트 앞에 <span class="inline-code">(.venv)</span>가 표시됩니다.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>의존성 설치</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">powershell</span>
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+              </div>
+              <pre><code>pip install -r requirements.txt</code></pre>
+            </div>
+            <p>markitdown, pyyaml, magika 등 모든 의존성이 자동으로 설치됩니다 (약 2~5분 소요).</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>설치 확인</h4>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">powershell</span>
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+              </div>
+              <pre><code>python -c "from markitdown import MarkItDown; print('OK')"</code></pre>
+            </div>
+            <p><span class="inline-code">OK</span>가 출력되면 설치 완료입니다.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 빠른 시작 -->
+    <section class="section" id="quickstart">
+      <h2 class="section-title"><span class="icon">🚀</span> 빠른 시작</h2>
+
+      <p>변환하고 싶은 파일을 <span class="inline-code">input\</span> 폴더에 넣거나, 파일 경로를 직접 지정합니다.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell — 가장 간단한 사용법</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># input/ 폴더에 넣은 파일 변환</span>
+python scripts\convert_one.py input\문서.pdf
+
+<span class="cm"># 파일 경로를 직접 지정</span>
+python scripts\convert_one.py "C:\Users\내폴더\보고서.docx"</code></pre>
+      </div>
+
+      <p>변환이 완료되면 아래와 같이 출력됩니다:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">출력 예시</span></div>
+        <pre><code><span class="green">[OK]</span> 문서.pdf → 문서.md  (12.34s, standard)</code></pre>
+      </div>
+
+      <p>결과 파일은 다음 위치에 저장됩니다:</p>
+
+      <div class="file-tree">
+        <span class="tree-folder">output\</span><br>
+        <span>├── </span><span class="tree-folder">raw_md\</span><span class="tree-arrow">  ←</span><span class="tree-comment"> MarkItDown 원본 출력 (보존용)</span><br>
+        <span>├── </span><span class="tree-folder">clean_md\</span><span class="tree-arrow"> ←</span><span class="tree-comment"> <strong>최종 정규화 완료 (실제 사용할 파일)</strong></span><br>
+        <span>├── </span><span class="tree-folder">json_logs\</span><span class="tree-arrow"> ←</span><span class="tree-comment"> 변환 로그 JSON</span><br>
+        <span>└── </span><span class="tree-folder">failed\</span><span class="tree-arrow">   ←</span><span class="tree-comment"> 검증 실패 파일 (있을 경우)</span>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>실제로 쓸 파일은 <span class="inline-code">output\clean_md\</span> 안에 있습니다.</strong>
+          <span class="inline-code">raw_md\</span>는 원본 보존 목적으로만 유지됩니다.
+        </div>
+      </div>
+    </section>
+
+    <!-- 단일 파일 변환 -->
+    <section class="section" id="convert-one">
+      <h2 class="section-title"><span class="icon">📄</span> 단일 파일 변환</h2>
+
+      <p><span class="inline-code">scripts\convert_one.py</span>는 파일 1개에 대해 전체 파이프라인(추출→정규화→검증→로그)을 실행합니다.</p>
+
+      <h3>기본 사용법</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code>python scripts\convert_one.py &lt;파일경로&gt; [옵션]</code></pre>
+      </div>
+
+      <h3>옵션</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>옵션</th><th>설명</th><th>예시</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--force</td>
+              <td>이미 변환된 파일이 있어도 재변환합니다</td>
+              <td><span class="inline-code">--force</span></td>
+            </tr>
+            <tr>
+              <td>--mode</td>
+              <td>변환 모드를 강제 지정합니다 (기본: 자동)</td>
+              <td><span class="inline-code">--mode ocr</span></td>
+            </tr>
+            <tr>
+              <td>--config</td>
+              <td>설정 파일 경로를 지정합니다</td>
+              <td><span class="inline-code">--config my\settings.yaml</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>사용 예시</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># 기본 변환</span>
+python scripts\convert_one.py input\report.pdf
+
+<span class="cm"># 재변환 (기존 결과 덮어쓰기)</span>
+python scripts\convert_one.py input\report.pdf --force
+
+<span class="cm"># OCR 모드로 강제 지정 (스캔 PDF용)</span>
+python scripts\convert_one.py input\scan.pdf --mode ocr
+
+<span class="cm"># 절대 경로 사용</span>
+python scripts\convert_one.py "C:\Users\user\Desktop\계약서.docx"</code></pre>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>이미 변환한 파일을 다시 변환하려면</strong> <span class="inline-code">--force</span> 옵션을 추가하세요.
+          기본적으로 <span class="inline-code">raw_md\</span>에 같은 이름 파일이 있으면 변환을 건너뜁니다.
+        </div>
+      </div>
+    </section>
+
+    <!-- 배치 변환 -->
+    <section class="section" id="convert-batch">
+      <h2 class="section-title"><span class="icon">📂</span> 배치 변환</h2>
+
+      <p>폴더 안의 파일을 한 번에 변환합니다. <span class="inline-code">scripts\convert_batch.py</span>는 병렬 처리와 진행률 표시, 완료 리포트를 지원합니다.</p>
+
+      <h3>기본 사용법</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code>python scripts\convert_batch.py &lt;폴더경로&gt; [옵션]</code></pre>
+      </div>
+
+      <h3>옵션</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>옵션</th><th>설명</th><th>기본값</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--recursive</td>
+              <td>하위 폴더까지 포함합니다</td>
+              <td>미포함</td>
+            </tr>
+            <tr>
+              <td>--workers</td>
+              <td>병렬 변환 워커 수</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td>--force</td>
+              <td>이미 변환된 파일도 재변환</td>
+              <td>미사용</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>사용 예시</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># input/ 폴더 전체 변환</span>
+python scripts\convert_batch.py input\
+
+<span class="cm"># 하위 폴더 포함, 병렬 8개</span>
+python scripts\convert_batch.py input\ --recursive --workers 8
+
+<span class="cm"># 전체 재변환</span>
+python scripts\convert_batch.py input\ --recursive --force</code></pre>
+      </div>
+
+      <h3>완료 리포트 예시</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">출력</span></div>
+        <pre><code>[1/25] report.pdf ... <span class="green">OK</span>
+[2/25] slides.pptx ... <span class="green">OK</span>
+[3/25] scan_doc.pdf ... <span class="red">FAIL</span>
+...
+
+<span class="hl">======================================
+=== Batch Complete ===
+======================================
+Total  : 25
+Success: 22
+Skipped: 0
+Failed : 3
+
+Failed files:
+  - scan_doc.pdf (extraction_ratio too low)
+  - corrupt.docx (conversion error)
+  - unknown.xyz (unsupported format)
+
+Logs: output\json_logs\</span></code></pre>
+      </div>
+    </section>
+
+    <!-- 정규화 -->
+    <section class="section" id="normalize">
+      <h2 class="section-title"><span class="icon">✨</span> 정규화 단독 실행</h2>
+
+      <p>이미 변환된 <span class="inline-code">raw_md\</span> 파일을 다시 정규화하고 싶을 때 사용합니다.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># raw_md의 파일을 정규화 → clean_md/에 저장</span>
+python scripts\normalize_md.py output\raw_md\report.md
+
+<span class="cm"># 출력 경로 지정</span>
+python scripts\normalize_md.py output\raw_md\report.md -o output\clean_md\report_v2.md
+
+<span class="cm"># 결과를 화면에 출력 (파일 저장 안 함)</span>
+python scripts\normalize_md.py output\raw_md\report.md --stdout</code></pre>
+      </div>
+
+      <h3>정규화 처리 내용</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>처리 항목</th><th>설명</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>후행 공백 제거</td><td>각 줄 끝의 불필요한 공백을 제거</td></tr>
+            <tr><td>연속 개행 축소</td><td>3줄 이상 연속 빈 줄 → 2줄로 축소</td></tr>
+            <tr><td>불릿 통일</td><td><span class="inline-code">*</span>, <span class="inline-code">+</span> 불릿 → <span class="inline-code">-</span>로 통일</td></tr>
+            <tr><td>빈 헤딩 제거</td><td>내용 없는 <span class="inline-code">## </span> 줄 삭제</td></tr>
+            <tr><td>반복 토큰 축소</td><td>10자+ 동일 문자열 3회+ 반복 → 1회로 축소</td></tr>
+            <tr><td>코드블록 보호</td><td>코드블록 내부 내용은 변경하지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 검증 -->
+    <section class="section" id="validate">
+      <h2 class="section-title"><span class="icon">🔎</span> 검증 단독 실행</h2>
+
+      <p>변환된 Markdown 파일의 품질을 수동으로 검사합니다.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># 기본 검증</span>
+python scripts\validate_md.py output\clean_md\report.md
+
+<span class="cm"># 원본 파일 크기를 지정해 추출 비율도 검사</span>
+python scripts\validate_md.py output\clean_md\report.md --input-size 204800
+
+<span class="cm"># JSON 형식으로 결과 출력</span>
+python scripts\validate_md.py output\clean_md\report.md --json</code></pre>
+      </div>
+
+      <h3>검증 항목</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>항목</th><th>기준</th><th>실패 시</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>비어 있지 않음</td>
+              <td>문자 수 > 0</td>
+              <td><span class="badge red">즉시 실패</span></td>
+            </tr>
+            <tr>
+              <td>최소 길이</td>
+              <td>문자 수 ≥ 50 (기본값)</td>
+              <td><span class="badge yellow">에스컬레이션</span></td>
+            </tr>
+            <tr>
+              <td>헤딩 보존</td>
+              <td># 헤딩 1개 이상</td>
+              <td><span class="badge blue">경고만</span></td>
+            </tr>
+            <tr>
+              <td>반복 이상</td>
+              <td>10자+ 동일 문자열 5회+ 반복</td>
+              <td><span class="badge yellow">에스컬레이션</span></td>
+            </tr>
+            <tr>
+              <td>추출 비율</td>
+              <td>텍스트 길이 / 원본 크기 ≥ 1%</td>
+              <td><span class="badge yellow">에스컬레이션</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 파이프라인 구조 -->
+    <section class="section" id="pipeline">
+      <h2 class="section-title"><span class="icon">⚙️</span> 파이프라인 구조</h2>
+
+      <p>단일 파일 변환 시 내부적으로 다음 순서로 처리됩니다.</p>
+
+      <div class="pipeline">
+        <div class="pipe-step accent">
+          <div class="pipe-icon">📂</div>
+          <div class="pipe-label">입력</div>
+          <div class="pipe-sub">파일 확인</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🗺️</div>
+          <div class="pipe-label">라우터</div>
+          <div class="pipe-sub">모드 결정</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🔄</div>
+          <div class="pipe-label">추출</div>
+          <div class="pipe-sub">MarkItDown</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">✨</div>
+          <div class="pipe-label">정규화</div>
+          <div class="pipe-sub">clean_md</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🔎</div>
+          <div class="pipe-label">검증</div>
+          <div class="pipe-sub">품질 확인</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step green">
+          <div class="pipe-icon">✅</div>
+          <div class="pipe-label">완료</div>
+          <div class="pipe-sub">JSON 로그</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">🪜</span>
+        <div class="callout-body">
+          검증 실패 시 자동으로 <strong>Standard → OCR → High-accuracy</strong> 순으로 에스컬레이션합니다.
+          모든 모드에서 실패하면 <span class="inline-code">output\failed\</span>로 이동합니다.
+        </div>
+      </div>
+
+      <h3>변환 모드</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>모드</th><th>대상 파일</th><th>비용</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>standard</td>
+              <td>디지털 PDF, DOCX, PPTX, XLSX, HTML, CSV 등</td>
+              <td><span class="badge green">낮음</span></td>
+            </tr>
+            <tr>
+              <td>ocr</td>
+              <td>스캔 PDF, 이미지 중심 문서</td>
+              <td><span class="badge yellow">중간</span></td>
+            </tr>
+            <tr>
+              <td>high_accuracy</td>
+              <td>복잡한 레이아웃, 표 중심 문서</td>
+              <td><span class="badge red">높음</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 지원 포맷 -->
+    <section class="section" id="formats">
+      <h2 class="section-title"><span class="icon">📋</span> 지원 포맷</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>확장자</th><th>형식</th><th>모드</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>.pdf</td><td>PDF 문서</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.docx .doc</td><td>Word 문서</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.pptx .ppt</td><td>PowerPoint 발표자료</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.xlsx .xls</td><td>Excel 스프레드시트</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.html .htm</td><td>웹 페이지</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.csv</td><td>쉼표 구분 데이터</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.json</td><td>JSON 데이터</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.xml</td><td>XML 문서</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.epub</td><td>전자책</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.zip</td><td>압축 파일</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.jpg .jpeg .png</td><td>이미지</td><td><span class="badge green">standard</span></td></tr>
+            <tr><td>.tif .tiff</td><td>TIFF 이미지 (스캔 문서)</td><td><span class="badge yellow">ocr</span></td></tr>
+            <tr><td>.txt .md .rst</td><td>텍스트 파일</td><td><span class="badge green">standard</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>스캔 PDF 주의:</strong> 스캔 PDF는 Standard 모드에서 텍스트 추출이 거의 안 됩니다.
+          이 경우 자동으로 OCR 모드로 에스컬레이션되지만, OCR 모드는
+          <span class="inline-code">F2MD_LLM_API_KEY</span> 환경변수(OpenAI API 키)가 필요합니다.
+        </div>
+      </div>
+    </section>
+
+    <!-- 설정 파일 -->
+    <section class="section" id="config">
+      <h2 class="section-title"><span class="icon">⚙️</span> 설정 파일</h2>
+
+      <p>모든 임곗값과 경로 설정은 <span class="inline-code">config\settings.yaml</span>에서 관리합니다.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">config/settings.yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># 경로 설정</span>
+paths:
+  input: "input"
+  raw_md: "output/raw_md"
+  clean_md: "output/clean_md"
+  json_logs: "output/json_logs"
+  failed: "output/failed"
+
+<span class="cm"># 모드 설정</span>
+modes:
+  default: "standard"
+  chain: ["standard", "ocr", "high_accuracy"]
+  extension_overrides:
+    ".tif": "ocr"   <span class="cm"># 특정 확장자 모드 강제 지정</span>
+
+<span class="cm"># 검증 임곗값</span>
+validation:
+  min_char_count: 50         <span class="cm"># 최소 문자 수</span>
+  max_repetition_count: 5    <span class="cm"># 반복 허용 횟수</span>
+  min_extraction_ratio: 0.01 <span class="cm"># 원본 대비 최소 추출 비율 (1%)</span>
+
+<span class="cm"># 배치 처리</span>
+batch:
+  max_workers: 4       <span class="cm"># 병렬 워커 수</span>
+  continue_on_error: true</code></pre>
+      </div>
+    </section>
+
+    <!-- 출력 구조 -->
+    <section class="section" id="output">
+      <h2 class="section-title"><span class="icon">📁</span> 출력 구조</h2>
+
+      <div class="file-tree">
+        <span class="tree-folder">output\</span><br>
+        <span>├── </span><span class="tree-folder">raw_md\</span><br>
+        <span>│   └── </span><span class="tree-file">문서.md</span><span class="tree-arrow">   ←</span><span class="tree-comment"> MarkItDown 원본 출력 (수정 금지)</span><br>
+        <span>├── </span><span class="tree-folder">clean_md\</span><br>
+        <span>│   └── </span><span class="tree-file">문서.md</span><span class="tree-arrow">   ←</span><span class="tree-comment"> 정규화 완료 (실제 사용할 파일)</span><br>
+        <span>├── </span><span class="tree-folder">json_logs\</span><br>
+        <span>│   └── </span><span class="tree-file">문서.json</span><span class="tree-arrow"> ←</span><span class="tree-comment"> 변환 로그</span><br>
+        <span>└── </span><span class="tree-folder">failed\</span><br>
+        <span>&nbsp;&nbsp;&nbsp; ├── </span><span class="tree-file">문서.pdf</span><span class="tree-arrow">      ←</span><span class="tree-comment"> 원본 복사본</span><br>
+        <span>&nbsp;&nbsp;&nbsp; └── </span><span class="tree-file">문서_failure.json ←</span><span class="tree-comment"> 실패 사유</span>
+      </div>
+
+      <h3>JSON 로그 예시</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">output/json_logs/문서.json</span></div>
+        <pre><code>{
+  <span class="st">"input_file"</span>: <span class="st">"input\\report.pdf"</span>,
+  <span class="st">"input_size_bytes"</span>: <span class="nm">204800</span>,
+  <span class="st">"selected_mode"</span>: <span class="st">"standard"</span>,
+  <span class="st">"escalated_to"</span>: <span class="kw">null</span>,
+  <span class="st">"retry_count"</span>: <span class="nm">0</span>,
+  <span class="st">"markitdown_version"</span>: <span class="st">"0.1.5"</span>,
+  <span class="st">"validation"</span>: {
+    <span class="st">"passed"</span>: <span class="kw">true</span>,
+    <span class="st">"char_count"</span>: <span class="nm">3842</span>,
+    <span class="st">"heading_count"</span>: <span class="nm">5</span>,
+    <span class="st">"repetition_flag"</span>: <span class="kw">false</span>,
+    <span class="st">"extraction_ratio"</span>: <span class="nm">0.0188</span>
+  },
+  <span class="st">"duration_seconds"</span>: <span class="nm">1.23</span>,
+  <span class="st">"status"</span>: <span class="st">"success"</span>,
+  <span class="st">"timestamp"</span>: <span class="st">"2026-04-17T09:23:31+09:00"</span>
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq">
+      <h2 class="section-title"><span class="icon">❓</span> FAQ</h2>
+
+      <h3>Q. "Could not get FontBBox" 메시지가 계속 나와요</h3>
+      <p>
+        PDF 내부의 폰트 메타데이터가 불완전할 때 <span class="inline-code">pdfminer</span>가 출력하는 경고입니다.
+        <strong>텍스트 추출에는 영향이 없으며 무시해도 됩니다.</strong> 변환은 정상적으로 진행됩니다.
+      </p>
+
+      <h3>Q. "Couldn't find ffmpeg" 경고가 뜨는데요</h3>
+      <p>
+        오디오 처리 라이브러리(pydub)가 출력하는 경고입니다. PDF·문서 변환에는 ffmpeg가 전혀 필요 없으므로 <strong>무시해도 됩니다.</strong>
+        오디오 파일을 변환할 때만 ffmpeg 설치가 필요합니다.
+      </p>
+
+      <h3>Q. 변환 결과가 마크다운 헤딩 없이 텍스트만 있어요</h3>
+      <p>
+        원본 PDF가 <strong>시각적 디자인(폰트 크기·색상)으로만 구조를 표현</strong>한 경우 발생합니다.
+        PDF 내부에 구조 태그가 없으면 MarkItDown도 헤딩을 인식할 수 없습니다.
+        Word(.docx)나 HTML처럼 구조 정보가 있는 파일은 헤딩이 잘 보존됩니다.
+      </p>
+
+      <h3>Q. 이미 변환된 파일을 다시 변환하고 싶어요</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code>python scripts\convert_one.py input\파일.pdf --force</code></pre>
+      </div>
+
+      <h3>Q. 변환 속도를 높이고 싶어요</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code><span class="cm"># 워커 수를 CPU 코어 수만큼 늘립니다</span>
+python scripts\convert_batch.py input\ --workers 8</code></pre>
+      </div>
+      <p>또는 <span class="inline-code">config\settings.yaml</span>의 <span class="inline-code">batch.max_workers</span> 값을 변경하면 기본값이 적용됩니다.</p>
+
+      <h3>Q. 가상환경을 다시 활성화하는 방법은?</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">powershell</span>
+          <button class="copy-btn" onclick="copyCode(this)">복사</button>
+        </div>
+        <pre><code>cd D:\Projects\File-to-markdown
+.venv\Scripts\activate</code></pre>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '복사됨 ✓';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '복사';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  // 현재 섹션에 따라 사이드바 활성화
+  const navLinks = document.querySelectorAll('.nav-link');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
