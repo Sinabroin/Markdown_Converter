@@ -1,6 +1,6 @@
 """모드 에스컬레이션 관리."""
 
-DEFAULT_MODE_CHAIN = ["standard", "ocr", "high_accuracy"]
+DEFAULT_MODE_CHAIN = ["standard", "paddle_ocr", "ocr", "high_accuracy"]
 
 
 def next_mode(current: str, chain: list[str] | None = None) -> str | None:
@@ -15,6 +15,8 @@ def next_mode(current: str, chain: list[str] | None = None) -> str | None:
 
     Example:
         >>> next_mode("standard")
+        'paddle_ocr'
+        >>> next_mode("paddle_ocr")
         'ocr'
         >>> next_mode("high_accuracy")
         None

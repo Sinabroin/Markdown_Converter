@@ -20,12 +20,14 @@ EXTENSION_MAP: dict[str, str] = {
     ".txt": "standard",
     ".md": "standard",
     ".rst": "standard",
-    ".jpg": "standard",
-    ".jpeg": "standard",
-    ".png": "standard",
-    ".gif": "standard",
-    ".webp": "standard",
-    ".bmp": "standard",
+    ".jpg": "paddle_ocr",
+    ".jpeg": "paddle_ocr",
+    ".png": "paddle_ocr",
+    ".gif": "paddle_ocr",
+    ".webp": "paddle_ocr",
+    ".bmp": "paddle_ocr",
+    ".tif": "paddle_ocr",
+    ".tiff": "paddle_ocr",
 }
 
 # MIME 타입 → 모드 매핑 (magika 결과 기반)
@@ -42,12 +44,12 @@ MIME_MAP: dict[str, str] = {
     "text/xml": "standard",
     "application/epub+zip": "standard",
     "application/zip": "standard",
-    "image/jpeg": "standard",
-    "image/png": "standard",
-    "image/gif": "standard",
-    "image/webp": "standard",
-    "image/bmp": "standard",
-    "image/tiff": "ocr",
+    "image/jpeg": "paddle_ocr",
+    "image/png": "paddle_ocr",
+    "image/gif": "paddle_ocr",
+    "image/webp": "paddle_ocr",
+    "image/bmp": "paddle_ocr",
+    "image/tiff": "paddle_ocr",
 }
 
 
@@ -65,7 +67,7 @@ def route(file_path: Path, cfg: dict | None = None) -> str:
         cfg: settings.yaml 설정 딕셔너리. None이면 기본값 사용.
 
     Returns:
-        모드 문자열: 'standard', 'ocr', 'high_accuracy', 'unknown'
+        모드 문자열: 'standard', 'paddle_ocr', 'ocr', 'high_accuracy', 'unknown'
     """
     ext = file_path.suffix.lower()
 

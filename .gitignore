@@ -1,41 +1,6 @@
-# 가상환경
-.venv/
-venv/
-env/
-
-# 출력 디렉토리 (변환 결과물)
-output/raw_md/
-output/clean_md/
-output/json_logs/
-output/failed/
-
-# 입력 디렉토리 내 실제 파일 (샘플 제외)
-input/
-!input/.gitkeep
-
-# Python 캐시
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-
-# pytest 캐시
-.pytest_cache/
-.coverage
-htmlcov/
-
-# 환경변수
-.env
-.env.*
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
+.venv/ 
+__pycache__/ 
+*.pyc 
+output/ 
+*.log 
+.env 

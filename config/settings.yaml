@@ -14,13 +14,19 @@ modes:
   default: "standard"
   chain:
     - "standard"
+    - "paddle_ocr"
     - "ocr"
     - "high_accuracy"
-  max_retries: 3
+  max_retries: 4
   # 특정 확장자의 기본 모드를 재정의 (선택적)
   extension_overrides:
-    ".tif": "ocr"
-    ".tiff": "ocr"
+    ".tif": "paddle_ocr"
+    ".tiff": "paddle_ocr"
+
+# PaddleOCR 설정 (무료, 로컬 실행 — API 키 불필요)
+paddle_ocr:
+  lang: "korean"          # 인식 언어 (korean은 한영 동시 지원)
+  use_angle_cls: true     # 기울어진 텍스트 자동 보정
 
 # OCR 설정 (Phase 2 - 환경변수 F2MD_LLM_API_KEY 필요)
 ocr:
