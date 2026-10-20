@@ -67,6 +67,13 @@ def convert_one(
 
     # 2. 모드 결정
     mode = initial_mode or router.route(input_path, cfg)
+    cloud_modes = {"ocr", "high_accuracy"}
+    allow_cloud = cfg.get("security", {}).get("allow_cloud_processing", False)
+    if mode in cloud_modes and not allow_cloud:
+        raise PermissionError(
+            "Cloud processing is disabled. Use --allow-cloud only after "
+            "confirming the input is permitted to leave the local environment."
+        )
     if mode == "unknown":
         reason = f"unsupported file type: {input_path.suffix}"
         _move_to_failed(input_path, failed_dir, [reason])
@@ -111,7 +118,11 @@ def convert_one(
         return log_data
 
     # 3~5. 에스컬레이션 루프
-    mode_chain = escalator.get_chain(cfg)
+    # Never escalate into OpenAI/Azure without explicit authorization.
+    mode_chain = [
+        candidate for candidate in escalator.get_chain(cfg)
+        if allow_cloud or candidate not in cloud_modes
+    ]
     current_mode = mode
     retry_count = 0
     escalated_to: str | None = None
@@ -237,7 +248,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=["standard", "ocr", "high_accuracy"],
+        choices=["standard", "paddle_ocr", "ocr", "high_accuracy"],
         default=None,
         help="변환 모드를 강제 지정합니다 (기본: 자동 라우팅).",
     )
@@ -248,10 +259,18 @@ def main() -> None:
         help="설정 파일 경로 (기본: config/settings.yaml).",
     )
 
+    parser.add_argument(
+        "--allow-cloud",
+        action="store_true",
+        help="명시적으로 승인된 문서에 대해서만 외부 OpenAI/Azure 모드를 허용합니다.",
+    )
+
     args = parser.parse_args()
 
     root = ROOT if args.config is None else args.config.parent.parent
     cfg = config_loader.load_config(root)
+    if args.allow_cloud:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = True
 
     result = convert_one(
         input_path=args.input.resolve(),
