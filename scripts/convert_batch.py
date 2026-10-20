@@ -17,6 +17,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from f2md import config_loader, router
+from f2md.network_guard import offline_network_guard
 
 # scripts/ 디렉토리를 경로에 추가해 convert_one을 임포트
 _SCRIPTS_DIR = Path(__file__).parent
@@ -162,12 +163,19 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="파이썬 소켓 연결을 차단합니다 (완전한 OS 망분리 대체 불가).",
+    )
+    parser.add_argument(
         "--allow-cloud",
         action="store_true",
         help="명시적으로 승인된 문서에 대해서만 외부 OpenAI/Azure 모드를 허용합니다.",
     )
 
     args = parser.parse_args()
+    if args.offline and args.allow_cloud:
+        parser.error("--offline and --allow-cloud cannot be combined")
 
     input_dir: Path = args.input_dir.resolve()
     if not input_dir.exists() or not input_dir.is_dir():
@@ -177,13 +185,16 @@ def main() -> None:
     cfg = config_loader.load_config(ROOT)
     if args.allow_cloud:
         cfg.setdefault("security", {})["allow_cloud_processing"] = True
-    results = run_batch(
-        input_dir=input_dir,
-        cfg=cfg,
-        recursive=args.recursive,
-        force=args.force,
-        max_workers=args.workers,
-    )
+    if args.offline:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = False
+    with offline_network_guard(enabled=args.offline):
+        results = run_batch(
+            input_dir=input_dir,
+            cfg=cfg,
+            recursive=args.recursive,
+            force=args.force,
+            max_workers=args.workers,
+        )
 
     print_report(results, cfg["paths"]["json_logs"])
     sys.exit(0 if results["failed"] == 0 else 1)
