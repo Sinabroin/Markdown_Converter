@@ -9,7 +9,7 @@ File-to-Markdown is intended to support privacy-conscious document processing. *
 - Basic PDF and Office extraction uses MarkItDown. Local image and scanned-PDF OCR use PaddleOCR (3.x required for scanned PDFs). OCR model weights or Python dependencies may require downloads during installation or first use.
 - Optional `--offline` blocks Python-level socket access during processing, but cannot block networking performed by native libraries or spawned processes. Use OS-level or network egress controls for isolation.
 - An actual offline / air-gapped deployment additionally requires pre-provisioned dependencies and OCR weights, approved software supply chain, and network egress controls enforced outside this Python application.
-- Scanned-PDF page OCR is implemented with a mocked integration test but has not been validated using actual enterprise PDF scans. Do not assume production OCR accuracy.
+- Scanned-PDF page OCR has passed real-model inference on a synthetic two-page English PDF, as well as mocked unit tests. It has not been validated on actual enterprise PDF scans or complex layouts; do not assume production OCR accuracy.
 - Converted Markdown, intermediate files, and JSON logs may contain sensitive information. Store these only on approved devices, control filesystem permissions, and apply suitable retention policies.
 - The `input/` directory is ignored for new files; files already committed to Git history remain accessible until separately removed from history.
 
