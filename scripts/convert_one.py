@@ -17,6 +17,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from f2md import config_loader, escalator, extractor, logger, normalizer, router, validator
+from f2md.network_guard import offline_network_guard
 
 
 def convert_one(
@@ -260,24 +261,34 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="파이썬 소켓 연결을 차단합니다 (완전한 OS 망분리 대체 불가).",
+    )
+    parser.add_argument(
         "--allow-cloud",
         action="store_true",
         help="명시적으로 승인된 문서에 대해서만 외부 OpenAI/Azure 모드를 허용합니다.",
     )
 
     args = parser.parse_args()
+    if args.offline and args.allow_cloud:
+        parser.error("--offline and --allow-cloud cannot be combined")
 
     root = ROOT if args.config is None else args.config.parent.parent
     cfg = config_loader.load_config(root)
     if args.allow_cloud:
         cfg.setdefault("security", {})["allow_cloud_processing"] = True
+    if args.offline:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = False
 
-    result = convert_one(
-        input_path=args.input.resolve(),
-        cfg=cfg,
-        force=args.force,
-        initial_mode=args.mode,
-    )
+    with offline_network_guard(enabled=args.offline):
+        result = convert_one(
+            input_path=args.input.resolve(),
+            cfg=cfg,
+            force=args.force,
+            initial_mode=args.mode,
+        )
 
     sys.exit(0 if result.get("status") in ("success", "skipped") else 1)
 
