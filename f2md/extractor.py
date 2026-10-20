@@ -28,6 +28,15 @@ class Extractor:
         self._md = None
         self._paddle_cfg = self.cfg.get("paddle_ocr", {})
 
+        # Local-first security guard: cloud integrations require explicit opt-in.
+        if mode in ("ocr", "high_accuracy") and not self.cfg.get("security", {}).get(
+            "allow_cloud_processing", False
+        ):
+            raise PermissionError(
+                f"Cloud mode {mode!r} is disabled. Set security.allow_cloud_processing "
+                "to true or pass --allow-cloud for an explicitly authorized run."
+            )
+
         if mode == "paddle_ocr":
             pass  # PaddleOCR은 extract() 호출 시 지연 초기화
         elif mode == "ocr":
