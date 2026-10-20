@@ -46,6 +46,18 @@ output/
 └── failed/       # 검증 실패 파일 + 사유 JSON
 ```
 
+## 스캔 PDF 로컬 OCR와 오프라인 실행
+
+PaddleOCR 3.x가 설치된 환경에서 스캔 PDF를 페이지별로 로컬 OCR 처리할 수 있습니다. 실제 기업 문서에 대한 정확도 검증은 추가로 필요합니다.
+
+```powershell
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr --offline
+```
+
+`--offline`은 Python의 외부 소켓 연결을 막지만 OS/컨테이너/네트워크 방화벽의 대체 수단은 아닙니다. 필요한 OCR 모델은 미리 내려받아야 합니다.
+일괄 변환에서 이름이 같은 PDF와 Word 등은 서로 다른 출력 ID로 저장합니다.
+
 ## CLI 명령어
 
 ```powershell
