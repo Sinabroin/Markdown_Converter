@@ -25,6 +25,7 @@ def convert_one(
     cfg: dict,
     force: bool = False,
     initial_mode: str | None = None,
+    output_key: str | None = None,
 ) -> dict:
     """단일 파일에 대해 전체 변환 파이프라인을 실행한다.
 
@@ -77,7 +78,7 @@ def convert_one(
         )
     if mode == "unknown":
         reason = f"unsupported file type: {input_path.suffix}"
-        _move_to_failed(input_path, failed_dir, [reason])
+        _move_to_failed(input_path, failed_dir, [reason], output_key=output_key)
         log_data = logger.build_log(
             input_file=str(input_path),
             input_size_bytes=input_size,
@@ -93,12 +94,15 @@ def convert_one(
             status="failed",
             error=reason,
         )
-        logger.write_log(json_logs_dir, log_data)
+        logger.write_log(json_logs_dir, log_data, stem_override=output_key)
         print(f"[FAILED] {input_path.name}: {reason}")
         return log_data
 
+    # Stable batch key prevents basename collisions.
+    output_stem = output_key or input_path.stem
+
     # raw_md/ 중복 체크
-    raw_path = raw_md_dir / f"{input_path.stem}.md"
+    raw_path = raw_md_dir / f"{output_stem}.md"
     if raw_path.exists() and not force:
         print(f"[SKIP] 이미 변환된 파일입니다: {raw_path.name}  (--force로 재변환)")
         log_data = logger.build_log(
@@ -110,12 +114,12 @@ def convert_one(
             retry_count=0,
             markitdown_version=markitdown_ver,
             output_raw=str(raw_path),
-            output_clean=str(clean_md_dir / f"{input_path.stem}.md"),
+            output_clean=str(clean_md_dir / f"{output_stem}.md"),
             validation={},
             duration_seconds=time.monotonic() - start_time,
             status="skipped",
         )
-        logger.write_log(json_logs_dir, log_data)
+        logger.write_log(json_logs_dir, log_data, stem_override=output_key)
         return log_data
 
     # 3~5. 에스컬레이션 루프
@@ -142,7 +146,7 @@ def convert_one(
 
             # 단계 4: 정규화
             clean_text = normalizer.normalize(raw_text, cfg)
-            clean_path = clean_md_dir / f"{input_path.stem}.md"
+            clean_path = clean_md_dir / f"{output_stem}.md"
             clean_path.write_text(clean_text, encoding="utf-8")
 
             # 단계 5: 검증
@@ -169,7 +173,7 @@ def convert_one(
                 if result.warnings:
                     for w in result.warnings:
                         print(f"  [WARN] {w}")
-                logger.write_log(json_logs_dir, log_data)
+                logger.write_log(json_logs_dir, log_data, stem_override=output_key)
                 print(f"[OK] {input_path.name} → {clean_path.name}  ({duration:.2f}s, {current_mode})")
                 return log_data
             else:
@@ -193,7 +197,7 @@ def convert_one(
     if last_error:
         failure_reasons = [last_error] + failure_reasons
 
-    _move_to_failed(input_path, failed_dir, failure_reasons)
+    _move_to_failed(input_path, failed_dir, failure_reasons, output_key=output_key)
     duration = time.monotonic() - start_time
     log_data = logger.build_log(
         input_file=str(input_path),
@@ -210,18 +214,20 @@ def convert_one(
         status="failed",
         error="; ".join(failure_reasons),
     )
-    logger.write_log(json_logs_dir, log_data)
+    logger.write_log(json_logs_dir, log_data, stem_override=output_key)
     print(f"[FAILED] {input_path.name}: 모든 모드 소진 → failed/")
     return log_data
 
 
-def _move_to_failed(input_path: Path, failed_dir: Path, reasons: list[str]) -> None:
+def _move_to_failed(
+    input_path: Path, failed_dir: Path, reasons: list[str], output_key: str | None = None
+) -> None:
     """파일을 failed/ 디렉토리로 복사하고 사유 JSON을 저장한다."""
     import json
     from datetime import datetime
 
     failed_dir.mkdir(parents=True, exist_ok=True)
-    dest = failed_dir / input_path.name
+    dest = failed_dir / (f"{output_key}{input_path.suffix}" if output_key else input_path.name)
     shutil.copy2(str(input_path), str(dest))
 
     reason_json = {
@@ -229,7 +235,7 @@ def _move_to_failed(input_path: Path, failed_dir: Path, reasons: list[str]) -> N
         "failure_reasons": reasons,
         "timestamp": datetime.now().astimezone().isoformat(),
     }
-    reason_path = failed_dir / f"{input_path.stem}_failure.json"
+    reason_path = failed_dir / f"{output_key or input_path.stem}_failure.json"
     reason_path.write_text(
         json.dumps(reason_json, ensure_ascii=False, indent=2),
         encoding="utf-8",
