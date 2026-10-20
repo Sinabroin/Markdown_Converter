@@ -8,6 +8,7 @@
 """
 
 import argparse
+import hashlib
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -77,12 +78,27 @@ def run_batch(
     workers = max_workers or cfg.get("batch", {}).get("max_workers", 4)
     continue_on_error = cfg.get("batch", {}).get("continue_on_error", True)
 
+    # Preserve legacy output names unless more than one input shares the stem.
+    # Colliding files receive stable suffixes derived from their relative paths.
+    stem_counts = {}
+    for item in files:
+        stem_counts[item.stem] = stem_counts.get(item.stem, 0) + 1
+
+    def output_key(file_path: Path) -> str | None:
+        if stem_counts[file_path.stem] == 1:
+            return None
+        relative = file_path.relative_to(input_dir).as_posix()
+        digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()[:10]
+        extension = file_path.suffix.lower().lstrip(".") or "file"
+        return f"{file_path.stem}__{extension}__{digest}"
+
+
     results = {"total": total, "success": 0, "failed": 0, "skipped": 0, "details": []}
     counter = {"done": 0}
 
     def process_file(file_path: Path) -> dict:
         try:
-            log = convert_one(file_path, cfg, force=force)
+            log = convert_one(file_path, cfg, force=force, output_key=output_key(file_path))
             status = log.get("status", "failed")
             error = log.get("error")
             return {"file": file_path.name, "status": status, "error": error}
