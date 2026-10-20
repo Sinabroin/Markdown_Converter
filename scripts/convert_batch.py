@@ -8,6 +8,7 @@
 """
 
 import argparse
+import hashlib
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,6 +18,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from f2md import config_loader, router
+from f2md.network_guard import offline_network_guard
 
 # scripts/ 디렉토리를 경로에 추가해 convert_one을 임포트
 _SCRIPTS_DIR = Path(__file__).parent
@@ -76,12 +78,27 @@ def run_batch(
     workers = max_workers or cfg.get("batch", {}).get("max_workers", 4)
     continue_on_error = cfg.get("batch", {}).get("continue_on_error", True)
 
+    # Preserve legacy output names unless more than one input shares the stem.
+    # Colliding files receive stable suffixes derived from their relative paths.
+    stem_counts = {}
+    for item in files:
+        stem_counts[item.stem] = stem_counts.get(item.stem, 0) + 1
+
+    def output_key(file_path: Path) -> str | None:
+        if stem_counts[file_path.stem] == 1:
+            return None
+        relative = file_path.relative_to(input_dir).as_posix()
+        digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()[:10]
+        extension = file_path.suffix.lower().lstrip(".") or "file"
+        return f"{file_path.stem}__{extension}__{digest}"
+
+
     results = {"total": total, "success": 0, "failed": 0, "skipped": 0, "details": []}
     counter = {"done": 0}
 
     def process_file(file_path: Path) -> dict:
         try:
-            log = convert_one(file_path, cfg, force=force)
+            log = convert_one(file_path, cfg, force=force, output_key=output_key(file_path))
             status = log.get("status", "failed")
             error = log.get("error")
             return {"file": file_path.name, "status": status, "error": error}
@@ -161,7 +178,20 @@ def main() -> None:
         help="병렬 워커 수 (기본: settings.yaml의 batch.max_workers).",
     )
 
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="파이썬 소켓 연결을 차단합니다 (완전한 OS 망분리 대체 불가).",
+    )
+    parser.add_argument(
+        "--allow-cloud",
+        action="store_true",
+        help="명시적으로 승인된 문서에 대해서만 외부 OpenAI/Azure 모드를 허용합니다.",
+    )
+
     args = parser.parse_args()
+    if args.offline and args.allow_cloud:
+        parser.error("--offline and --allow-cloud cannot be combined")
 
     input_dir: Path = args.input_dir.resolve()
     if not input_dir.exists() or not input_dir.is_dir():
@@ -169,13 +199,18 @@ def main() -> None:
         sys.exit(1)
 
     cfg = config_loader.load_config(ROOT)
-    results = run_batch(
-        input_dir=input_dir,
-        cfg=cfg,
-        recursive=args.recursive,
-        force=args.force,
-        max_workers=args.workers,
-    )
+    if args.allow_cloud:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = True
+    if args.offline:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = False
+    with offline_network_guard(enabled=args.offline):
+        results = run_batch(
+            input_dir=input_dir,
+            cfg=cfg,
+            recursive=args.recursive,
+            force=args.force,
+            max_workers=args.workers,
+        )
 
     print_report(results, cfg["paths"]["json_logs"])
     sys.exit(0 if results["failed"] == 0 else 1)

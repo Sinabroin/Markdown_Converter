@@ -28,6 +28,15 @@ class Extractor:
         self._md = None
         self._paddle_cfg = self.cfg.get("paddle_ocr", {})
 
+        # Local-first security guard: cloud integrations require explicit opt-in.
+        if mode in ("ocr", "high_accuracy") and not self.cfg.get("security", {}).get(
+            "allow_cloud_processing", False
+        ):
+            raise PermissionError(
+                f"Cloud mode {mode!r} is disabled. Set security.allow_cloud_processing "
+                "to true or pass --allow-cloud for an explicitly authorized run."
+            )
+
         if mode == "paddle_ocr":
             pass  # PaddleOCR은 extract() 호출 시 지연 초기화
         elif mode == "ocr":
@@ -72,55 +81,77 @@ class Extractor:
         return text, title
 
     def _extract_with_paddle(self, file_path: Path) -> tuple[str, str | None]:
-        """PaddleOCR로 이미지에서 텍스트를 추출해 Markdown 문자열로 반환한다.
+        """Run local PaddleOCR on an image or a scanned PDF.
 
-        설정(paddle_ocr 섹션)에서 lang, use_angle_cls를 읽는다.
-        모델은 첫 실행 시 자동 다운로드된다 (최초 1회, 약 500MB~1GB).
-
-        Args:
-            file_path: 이미지 파일 경로 (.jpg, .png, .tif 등).
-
-        Returns:
-            (markdown_text, None) 튜플. 제목 정보는 없으므로 None 반환.
-
-        Raises:
-            ImportError: paddleocr 패키지가 설치되지 않은 경우.
-            Exception: OCR 처리 실패 시.
+        PaddleOCR 3.x can process PDF files page by page with predict().
+        Legacy 2.x OCR remains supported for images only.
         """
         try:
             from paddleocr import PaddleOCR
-        except ImportError as e:
+        except ImportError as exc:
             raise ImportError(
-                "PaddleOCR이 설치되지 않았습니다. "
-                "pip install paddlepaddle paddleocr 를 실행하세요."
-            ) from e
+                "PaddleOCR is required for local OCR. Install paddleocr and paddlepaddle."
+            ) from exc
 
         lang = self._paddle_cfg.get("lang", "korean")
-        use_angle_cls = self._paddle_cfg.get("use_angle_cls", True)
+        orientation = self._paddle_cfg.get("use_angle_cls", True)
+        is_pdf = file_path.suffix.lower() == ".pdf"
 
-        ocr = PaddleOCR(
-            use_angle_cls=use_angle_cls,
-            lang=lang,
-            show_log=False,
-        )
+        if hasattr(PaddleOCR, "predict"):
+            # PaddleOCR 3.x API. It accepts local image and PDF paths.
+            engine = PaddleOCR(
+                lang=lang,
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=orientation,
+            )
+            results = engine.predict(str(file_path))
+            pages = []
+            for index, result in enumerate(results or [], start=1):
+                payload = self._paddle_result_payload(result)
+                texts = payload.get("rec_texts", [])
+                content = "\n\n".join(str(value).strip() for value in texts if str(value).strip())
+                if content:
+                    pages.append(f"## Page {index}\n\n{content}" if is_pdf else content)
+            return "\n\n".join(pages), None
 
-        result = ocr.ocr(str(file_path), cls=use_angle_cls)
-
-        lines: list[str] = []
-        for page in (result or []):
-            for line in (page or []):
-                # line 구조: [좌표 4점, (텍스트, 신뢰도)]
-                if not line or len(line) < 2:
+        # PaddleOCR 2.x does not provide a stable multi-page PDF API.
+        if is_pdf:
+            raise RuntimeError(
+                "Local OCR of scanned PDFs requires PaddleOCR 3.x. "
+                "Upgrade paddleocr or use a text-based PDF with standard mode."
+            )
+        engine = PaddleOCR(lang=lang, use_angle_cls=orientation, show_log=False)
+        results = engine.ocr(str(file_path), cls=orientation)
+        texts = []
+        for page in results or []:
+            for item in page or []:
+                if not item or len(item) < 2:
                     continue
-                text_info = line[1]
-                if not text_info:
-                    continue
-                text = text_info[0] if isinstance(text_info, (list, tuple)) else str(text_info)
-                if text.strip():
-                    lines.append(text.strip())
+                info = item[1]
+                if isinstance(info, (tuple, list)) and info and str(info[0]).strip():
+                    texts.append(str(info[0]).strip())
+        return "\n\n".join(texts), None
 
-        markdown = "\n\n".join(lines)
-        return markdown, None
+    @staticmethod
+    def _paddle_result_payload(result) -> dict:
+        """Handle PaddleOCR 3.x result objects and JSON/dict variants."""
+        if isinstance(result, dict):
+            data = result
+        else:
+            data = getattr(result, "json", None)
+            if callable(data):
+                data = data()
+            if not isinstance(data, dict):
+                # Some PaddleOCR result wrappers expose mapping methods.
+                try:
+                    data = dict(result)
+                except (TypeError, ValueError):
+                    raise TypeError("Unexpected PaddleOCR 3.x prediction output") from None
+        payload = data.get("res", data)
+        if not isinstance(payload, dict):
+            raise TypeError("Unexpected PaddleOCR prediction payload")
+        return payload
 
     @staticmethod
     def _build_llm_client(cfg: dict):

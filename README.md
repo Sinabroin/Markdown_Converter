@@ -1,12 +1,16 @@
 # File-to-Markdown
 
+[English README](README.en.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+
+> 보안 안내: OpenAI/Azure 클라우드 변환은 기본적으로 비활성화되며, 명시적으로 `--allow-cloud`를 지정한 경우에만 허용됩니다. 기본 로컬 모드도 외부 라이브러리 설치 및 OCR 모델 다운로드 시 네트워크 접근이 발생할 수 있으므로 완전한 망분리를 보장하지는 않습니다. [SECURITY.md](SECURITY.md)를 참조하세요.
+
 MarkItDown을 변환 엔진으로 사용하는 문서 → Markdown 변환 파이프라인.
 LLM/RAG 전처리에 바로 투입 가능한 정규화된 Markdown을 생산합니다.
 
 ## 특징
 
 - **자동 라우팅**: 확장자/MIME 기반으로 최적 변환 모드 자동 선택
-- **3단계 변환**: Standard → OCR → High-accuracy 자동 에스컬레이션
+- **로컬 우선 변환**: Standard → PaddleOCR, 클라우드 OCR/고정밀 처리는 승인 후 명시적 옵트인
 - **원본/정규화 분리**: `raw_md/`(원본 보존) + `clean_md/`(정규화 완료) 분리 저장
 - **품질 검증**: 문자 수, 반복 이상, 추출 비율 등 자동 검증
 - **변환 로깅**: 변환 1건당 JSON 로그 1개 생성
@@ -41,6 +45,18 @@ output/
 ├── json_logs/    # 변환별 JSON 로그
 └── failed/       # 검증 실패 파일 + 사유 JSON
 ```
+
+## 스캔 PDF 로컬 OCR와 오프라인 실행
+
+PaddleOCR 3.x가 설치된 환경에서 스캔 PDF를 페이지별로 로컬 OCR 처리할 수 있습니다. 합성 영문 스캔 PDF 2페이지를 실제 PaddleOCR 3.2.0으로 처리하는 CI 검증을 통과했습니다. 한글·표·복잡한 기업 문서의 정확도 검증은 추가로 필요합니다.
+
+```powershell
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr --offline
+```
+
+`--offline`은 Python의 외부 소켓 연결을 막지만 OS/컨테이너/네트워크 방화벽의 대체 수단은 아닙니다. 필요한 OCR 모델은 미리 내려받아야 합니다.
+일괄 변환에서 이름이 같은 PDF와 Word 등은 서로 다른 출력 ID로 저장합니다.
 
 ## CLI 명령어
 

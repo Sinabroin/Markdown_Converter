@@ -115,7 +115,7 @@ def validate(
 
 def _count_headings(text: str) -> int:
     """Markdown 헤딩(# ~ ######)의 수를 반환한다."""
-    return len(re.findall(r"^#{1,6}\s+\S", text, re.MULTILINE))
+    return len(re.findall(r"^#{1,6}[ \t]+\S", text, re.MULTILINE))
 
 
 def _has_repetition(text: str, min_length: int, max_count: int) -> bool:
