@@ -66,7 +66,7 @@ class TestValidate:
         assert any("empty" in r for r in result.failure_reasons)
 
     def test_sufficient_content_passes(self):
-        text = "# Title\n\n" + "This is a long enough paragraph. " * 5
+        text = "# Title\n\n" + " ".join(f"Section {i} contains a distinct sentence number {i}." for i in range(6))
         result = validate(text)
         assert result.passed
         assert result.char_count >= 50
@@ -104,7 +104,7 @@ class TestValidate:
         assert any("heading" in w for w in result.warnings)
 
     def test_none_input_size_skips_ratio_check(self):
-        text = "# Title\n\n" + "content " * 20
+        text = "# Title\n\n" + " ".join(f"Here is unique example content number {i}." for i in range(12))
         result = validate(text, input_size_bytes=None)
         assert result.extraction_ratio is None
         assert result.passed
