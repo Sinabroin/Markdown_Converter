@@ -11,7 +11,7 @@ This project grew from a practical constraint: organizations handling confidenti
 ## What it does
 
 - Routes files by extension, with MIME detection fallback.
-- Extracts common documents through MarkItDown, and image text through PaddleOCR.
+- Extracts common documents through MarkItDown, and image text or scanned-PDF pages through PaddleOCR 3.x (legacy 2.x image OCR is supported).
 - Preserves the initial extraction separately from the normalized Markdown.
 - Checks output length, repetition, and extraction ratios.
 - Converts whole folders and creates per-file JSON reports.
@@ -21,7 +21,7 @@ This project grew from a practical constraint: organizations handling confidenti
 
 The application does **not** promise to block every network request from every third-party library. PaddleOCR may download weights on first use. Download dependencies and model weights through approved channels before disconnected deployment. For strict isolation, enforce outbound network restrictions at the OS, container, or network layer; see [SECURITY.md](SECURITY.md).
 
-Current OCR support focuses on image formats. Fully local, page-level OCR for scanned PDFs is a planned improvement and should not be treated as production-ready.
+Basic page-by-page scanned-PDF OCR is implemented with PaddleOCR 3.x, but it has only been verified using synthetic OCR results so far. Real-model testing on representative PDFs is required before production use.
 
 ## Quick start (Windows PowerShell)
 
@@ -40,7 +40,14 @@ To convert a local image:
 python scripts/convert_one.py input/example.png
 ```
 
-PaddleOCR dependency compatibility varies by major release; if local OCR fails with the installed version, check the installed PaddleOCR API and the project's compatibility issues.
+To OCR a scanned PDF locally (PaddleOCR 3.x is required):
+
+```powershell
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr
+python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr --offline
+```
+
+`--offline` blocks Python socket connections during document conversion. It does not isolate native extensions or separate subprocesses, and does not replace OS or network egress controls. OCR weights and dependencies must be installed beforehand.
 
 **Do not run the examples on confidential corporate files unless the deployment, dependencies, temporary outputs, logs, and network controls are approved by your organization.**
 
@@ -66,7 +73,7 @@ output/
 └── failed/      # failed inputs and diagnostic reports
 ```
 
-**Current limitation:** files with the same basename but different extensions may overwrite one another's output files. Do not batch files with colliding names until collision-safe naming is implemented.
+In batch conversion, files sharing a stem receive distinct, stable output keys. Other input files retain existing output names; single-file CLI naming remains unchanged.
 
 ## Tests
 
@@ -74,7 +81,7 @@ Run fast unit tests:
 
 ```powershell
 python -m pip install pytest PyYAML
-python -m pytest -q tests/test_config_loader.py tests/test_escalator.py tests/test_logger.py tests/test_normalizer.py tests/test_router.py tests/test_validator.py tests/test_cloud_guard.py
+python -m pytest -q tests/test_config_loader.py tests/test_escalator.py tests/test_logger.py tests/test_normalizer.py tests/test_router.py tests/test_validator.py tests/test_cloud_guard.py tests/test_paddle_ocr.py tests/test_offline_network.py tests/test_batch_collisions.py
 ```
 
 Run the full suite after installing all dependencies:
