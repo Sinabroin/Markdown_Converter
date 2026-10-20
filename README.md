@@ -48,7 +48,7 @@ output/
 
 ## 스캔 PDF 로컬 OCR와 오프라인 실행
 
-PaddleOCR 3.x가 설치된 환경에서 스캔 PDF를 페이지별로 로컬 OCR 처리할 수 있습니다. 실제 기업 문서에 대한 정확도 검증은 추가로 필요합니다.
+PaddleOCR 3.x가 설치된 환경에서 스캔 PDF를 페이지별로 로컬 OCR 처리할 수 있습니다. 합성 영문 스캔 PDF 2페이지를 실제 PaddleOCR 3.2.0으로 처리하는 CI 검증을 통과했습니다. 한글·표·복잡한 기업 문서의 정확도 검증은 추가로 필요합니다.
 
 ```powershell
 python scripts/convert_one.py input/scanned.pdf --mode paddle_ocr
