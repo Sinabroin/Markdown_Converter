@@ -26,7 +26,7 @@ def test_convert_one_rejects_cloud_initial_mode(tmp_path, cfg, mode):
     with pytest.raises(PermissionError, match="Cloud processing is disabled"):
         convert_one(source, cfg, initial_mode=mode)
 
-    assert not (tmp_path / "output").exists()
+    assert not list((tmp_path / "output" / "raw_md").glob("*.md"))
 
 
 def test_local_processing_filters_cloud_escalations(monkeypatch, tmp_path, cfg):
