@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-def write_log(log_dir: Path, log_data: dict) -> Path:
+def write_log(log_dir: Path, log_data: dict, stem_override: str | None = None) -> Path:
     """변환 결과를 JSON 로그 파일로 저장한다.
 
     파일 이름: {input_file_stem}.json
@@ -25,7 +25,7 @@ def write_log(log_dir: Path, log_data: dict) -> Path:
     log_data["timestamp"] = datetime.now().astimezone().isoformat()
     log_data["python_version"] = sys.version.split()[0]
 
-    stem = Path(log_data.get("input_file", "unknown")).stem
+    stem = stem_override or Path(log_data.get("input_file", "unknown")).stem
     log_path = log_dir / f"{stem}.json"
     log_path.write_text(
         json.dumps(log_data, ensure_ascii=False, indent=2, default=str),
