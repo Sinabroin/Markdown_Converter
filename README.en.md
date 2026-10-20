@@ -21,7 +21,7 @@ This project grew from a practical constraint: organizations handling confidenti
 
 The application does **not** promise to block every network request from every third-party library. PaddleOCR may download weights on first use. Download dependencies and model weights through approved channels before disconnected deployment. For strict isolation, enforce outbound network restrictions at the OS, container, or network layer; see [SECURITY.md](SECURITY.md).
 
-Basic page-by-page scanned-PDF OCR is implemented with PaddleOCR 3.x, but it has only been verified using synthetic OCR results so far. Real-model testing on representative PDFs is required before production use.
+Basic page-by-page scanned-PDF OCR is implemented with PaddleOCR 3.x. A GitHub Actions smoke test successfully processed a synthetic, two-page image-only English PDF with PaddleOCR 3.2.0. Accuracy on Korean documents, complex tables, engineering drawings and representative enterprise PDFs still requires validation.
 
 ## Quick start (Windows PowerShell)
 
