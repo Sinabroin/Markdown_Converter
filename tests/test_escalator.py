@@ -4,8 +4,11 @@ from f2md.escalator import DEFAULT_MODE_CHAIN, get_chain, next_mode
 
 
 class TestNextMode:
-    def test_standard_to_ocr(self):
-        assert next_mode("standard") == "ocr"
+    def test_standard_to_paddle_ocr(self):
+        assert next_mode("standard") == "paddle_ocr"
+
+    def test_paddle_ocr_to_ocr(self):
+        assert next_mode("paddle_ocr") == "ocr"
 
     def test_ocr_to_high_accuracy(self):
         assert next_mode("ocr") == "high_accuracy"
@@ -26,7 +29,7 @@ class TestNextMode:
         assert next_mode("only", ["only"]) is None
 
     def test_default_chain_order(self):
-        assert DEFAULT_MODE_CHAIN == ["standard", "ocr", "high_accuracy"]
+        assert DEFAULT_MODE_CHAIN == ["standard", "paddle_ocr", "ocr", "high_accuracy"]
 
 
 class TestGetChain:
