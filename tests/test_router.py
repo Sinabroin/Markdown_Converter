@@ -24,9 +24,9 @@ class TestRouteByExtension:
         (".zip", "standard"),
         (".txt", "standard"),
         (".md", "standard"),
-        (".jpg", "standard"),
-        (".jpeg", "standard"),
-        (".png", "standard"),
+        (".jpg", "paddle_ocr"),
+        (".jpeg", "paddle_ocr"),
+        (".png", "paddle_ocr"),
     ])
     def test_known_extensions_return_standard(self, ext, expected_mode, tmp_path):
         """알려진 확장자는 standard 모드를 반환해야 한다."""
