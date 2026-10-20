@@ -161,6 +161,12 @@ def main() -> None:
         help="병렬 워커 수 (기본: settings.yaml의 batch.max_workers).",
     )
 
+    parser.add_argument(
+        "--allow-cloud",
+        action="store_true",
+        help="명시적으로 승인된 문서에 대해서만 외부 OpenAI/Azure 모드를 허용합니다.",
+    )
+
     args = parser.parse_args()
 
     input_dir: Path = args.input_dir.resolve()
@@ -169,6 +175,8 @@ def main() -> None:
         sys.exit(1)
 
     cfg = config_loader.load_config(ROOT)
+    if args.allow_cloud:
+        cfg.setdefault("security", {})["allow_cloud_processing"] = True
     results = run_batch(
         input_dir=input_dir,
         cfg=cfg,
